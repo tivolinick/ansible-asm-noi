@@ -1,0 +1,39 @@
+---
+# tasks file for asm
+- name: oc login
+  k8s_auth:
+    username: kubeadmin
+    password: "{{k8sAdminPassword}}"
+    host: "{{k8s_api}}"
+    validate_certs: no
+  register: login
+
+- name: cloudctl login
+  shell:
+    cmd: "cloudctl login -a $(oc get routes -n kube-system icp-console -o jsonpath='{.spec.host}' --kubeconfig {{ kubeconfig }}) -u admin -p {{icp_password}} -n default  --skip-ssl-validation"
+  register: cloudctl
+  changed_when: False
+
+- name: cloudctl login result
+  debug:
+    msg: "{{cloudctl}}"
+    verbosity: 1
+
+- name: login info
+  debug:
+    msg: "{{login}}"
+    verbosity: 1
+
+- name: token
+  debug:
+    msg: "{{login.k8s_auth.api_key}}"
+    verbosity: 1
+
+- name: check if asm already installed
+  shell:
+    cmd: helm list asm --tls
+  register: helm_chart_asm
+
+- import_tasks: install_asm.yml
+  when:
+    - "helm_chart_asm.stdout == ''"

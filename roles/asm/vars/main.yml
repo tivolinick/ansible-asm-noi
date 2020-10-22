@@ -1,0 +1,8 @@
+---
+# vars file for asm
+good_pod: True
+sourcedir: /source
+asm_tarfile: NOI_ASM_V1.1.7_FOR_ICP_ML.tar.gz
+workingdir: /opt/asm
+# has to be capitals as used in a downloaded file
+NAMESPACE: netcool

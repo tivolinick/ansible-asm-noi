@@ -1,0 +1,7 @@
+---
+# vars file for noi
+sourcedir: /source
+noi_tarfile: NOI_V1.6.0.3_OM_FOR_ICP_ML.tar.gz
+workingdir: /opt/noi
+# has to be capitals as used in a downloaded file
+NAMESPACE: netcool

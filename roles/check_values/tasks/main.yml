@@ -1,0 +1,21 @@
+---
+# tasks file for check_values
+
+# - name: get the console URL
+#   debug:
+#     msg: "{{consolepath.stdout}}"
+#   changed_when: False
+
+- name: get the cluster api
+  debug:
+    msg: "{{clusterapi.stdout}}"
+  changed_when: False
+
+- name: get storage class
+  debug:
+    msg: "{{storage_class.stdout_lines}}"
+  changed_when: False
+
+- name: show storage
+  debug:
+    msg: "{{sc}}"

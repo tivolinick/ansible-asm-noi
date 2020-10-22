@@ -1,0 +1,60 @@
+---
+# tasks file for asm
+
+# - meta: end_play
+# - name: extract the console url
+#   shell:
+#     cmd: "docker logs icp-inception | grep http | tail -1 | sed 's/.*http/http/' | sed 's/,.*//'"
+#   register: consolepath
+#   changed_when: False
+#
+# - name: show the console url
+#   debug:
+#     msg: "{{ consolepath.stdout }}"
+
+- name: get the console URL
+  shell:
+    cmd: "oc get routes -n kube-system icp-console -o jsonpath='{.spec.host}' --kubeconfig {{kubeconfig}}"
+  register: consolepath
+  changed_when: False
+
+- name: show the console url
+  debug:
+    msg: "{{ consolepath.stdout }}"
+
+- name: get cloudctl
+  uri:
+    dest: /usr/local/bin/cloudctl
+    creates: /usr/local/bin/cloudctl
+    url: "https://{{ consolepath.stdout }}{{ cloudctl_url }}"
+    # url: "{{ cluster_url }}{{ cloudctl_url }}"
+    # url: https://icp-console.apps.try5.os.fyre.ibm.com:443/api/cli/cloudctl-linux-amd64
+    follow_redirects: yes
+    validate_certs: no
+    mode: 0755
+
+- name: get helm
+  uri:
+    dest: "{{ sourcedir }}/{{ helm_file }}"
+    creates: "{{ sourcedir }}/{{ helm_file }}"
+    url: "https://{{ consolepath.stdout }}{{ helm_url }}"
+    # url: "{{ cluster_url }}{{ helm_url }}"
+    # dest: /source/helm-linux-amd64-v2.12.3.tar.gz
+    # creates: /source/helm-linux-amd64-v2.12.3.tar.gz
+    # url: https://icp-console.apps.try5.os.fyre.ibm.com:443/api/cli/helm-linux-amd64.tar.gz
+    follow_redirects: yes
+    validate_certs: no
+
+- name: unzip the file
+  unarchive:
+    remote_src: yes
+    src: "{{ sourcedir }}/{{ helm_file }}"
+    dest: "{{ sourcedir }}"
+    creates: "{{ sourcedir }}/linux-amd64/READ.md"
+
+- name: copy the helm file into the PATH
+  copy:
+    src: "{{ sourcedir }}/linux-amd64/helm"
+    remote_src: yes
+    dest: "/usr/local/bin"
+    mode: 0755

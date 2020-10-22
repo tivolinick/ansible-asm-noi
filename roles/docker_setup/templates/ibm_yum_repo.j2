@@ -1,0 +1,34 @@
+[ftp3]
+name=FTP3 yum repository
+baseurl=ftp://{{ ftpuser }}:{{ ftppass }}@ftp3.linux.ibm.com/redhat/yum/server/8/8Server/x86_64/baseos/
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+[ftp3-supplementary]
+name=FTP3 supplementary yum repository
+baseurl=ftp://{{ ftpuser }}:{{ ftppass }}@ftp3.linux.ibm.com/redhat/yum/server/8/8Server/x86_64/supplementary/
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+skip_if_unavailable=1
+[ftp3-appstream]
+name=FTP3 appstream yum repository
+baseurl=ftp://{{ ftpuser }}:{{ ftppass }}@ftp3.linux.ibm.com/redhat/yum/server/8/8Server/x86_64/appstream/
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+skip_if_unavailable=1
+[ftp3-crb]
+name=FTP3 CRB yum repository
+baseurl=ftp://{{ ftpuser }}:{{ ftppass }}@ftp3.linux.ibm.com/redhat/yum/server/8/8Server/x86_64/CRB/
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+skip_if_unavailable=1
+[ftp3-os-7]
+name=FTP3 rh-base 7 yum repository
+baseurl=ftp://{{ ftpuser }}:{{ ftppass }}@ftp3.linux.ibm.com/redhat/yum/server/7/7Server/x86_64/os/
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+skip_if_unavailable=1
+[ftp3-optional-7]
+name=FTP3 rh-base 7 yum repository
+baseurl=ftp://{{ ftpuser }}:{{ ftppass }}@ftp3.linux.ibm.com/redhat/yum/server/7/7Server/x86_64/optional/os/
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+skip_if_unavailable=1
+[ftp3-extras-7]
+name=FTP3 rh-base 7 yum repository
+baseurl=ftp://{{ ftpuser }}:{{ ftppass }}@ftp3.linux.ibm.com/redhat/yum/server/7/7Server/x86_64/extras/os/
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+skip_if_unavailable=1

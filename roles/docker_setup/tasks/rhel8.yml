@@ -1,0 +1,29 @@
+---
+
+- name: add alink for python rhel8
+  file:
+    state: link
+    name: /usr/bin/python
+    src: /usr/libexec/platform-python
+
+- name: install pip rhel8
+  command:
+    chdir: /tmp
+    cmd: python get-pip.py
+    creates: /usr/local/bin/pip
+
+- name: install required python libs rhel8
+  pip:
+    executable: /usr/local/bin/pip
+    state: present
+    name: 'docker-py'
+
+- name: setup ibm ftp yum repos
+  template:
+    src: ./templates/ibm_yum_repo.j2
+    dest: /etc/yum.repos.d/ibm_yum.repo
+
+- name: install docker rhel8
+  yum:
+    name: docker-1.10.3-57.el7.x86_64
+    state: present

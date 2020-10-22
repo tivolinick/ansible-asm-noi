@@ -1,0 +1,165 @@
+---
+# Run the icp-inception container
+- name: make source directory
+  file:
+    name: "{{ sourcedir }}"
+    state: directory
+
+- name: install rsync
+  yum:
+    name: rsync
+    state: present
+
+# - name: copy tar file from another server
+#   synchronize:
+#     src: "/source3/{{ tarfile }}"
+#     dest: "{{ sourcedir }}/{{ tarfile }}"
+#   delegate_to: ansible1
+
+- name: unzip the file
+  unarchive:
+    remote_src: yes
+    src: "{{ sourcedir }}/{{ tarfile }}"
+    dest: "{{ sourcedir }}"
+    creates: "{{ imagesource }}"
+
+- name: check for ibmcom images
+  shell:
+    cmd: "if [ $(docker images | grep ibmcom | wc -l) -gt 0 ] ; then echo loaded ; fi"
+  register: loaded
+  changed_when: False
+
+- name: checkit
+  debug:
+    msg: "{{ loaded }}"
+    verbosity: 2
+
+- name: load images into docker
+  shell:
+    chdir: "{{ sourcedir }}"
+    cmd: "tar xf {{ imagesource }} -O | docker load"
+  when:
+    - loaded.stdout != 'loaded'
+
+- name: patch registry
+  shell:
+    cmd: "oc patch configs.imageregistry.operator.openshift.io/cluster --type merge -p '{\"spec\":{\"defaultRoute\":true}}' --kubeconfig {{ kubeconfig }}"
+  register: patch_result
+  changed_when: "'(no change)' not in patch_result.stdout"
+
+- name: get the route to the registry
+  shell:
+    cmd: "oc get route -n openshift-image-registry default-route -o jsonpath='{.spec.host}' --kubeconfig {{ kubeconfig }}"
+  register: image_registry
+  changed_when: False
+
+- name: create docker registry directory
+  file:
+    name:  "/etc/docker/certs.d/{{image_registry.stdout}}"
+    state: directory
+
+- name: get certificate files
+  shell:
+    cmd: "openssl s_client -showcerts -servername {{ image_registry.stdout }} -connect {{ image_registry.stdout }}:443 2>/dev/null | openssl x509 -inform pem > /etc/docker/certs.d/{{ image_registry.stdout }}/ca.crt"
+    creates: "/etc/docker/certs.d/{{ image_registry.stdout }}/ca.crt"
+
+# - name: copy cert to nodes
+#   shell:
+#     cmd: "for node in $(oc get nodes -o wide --no-headers --kubeconfig {{kubeconfig}} | awk '{print $6}') ; do scp -o StrictHostKeyChecking=no -r /etc/docker/certs.d/{{ image_registry.stdout }} core@$node:/tmp ; ssh core@$node sudo bash -c 'ls /etc/docker/certs.d/{{ image_registry.stdout }} || mv /tmp/{{ image_registry.stdout }} /etc/docker/certs.d' ; done"
+#   register: scp_result
+#
+# - name: show scp result
+#   debug:
+#     msg: "{{scp_result}}"
+#
+# - name: stop here
+#   meta: end_play
+
+
+- name: make cluster directory
+  file:
+    name: "{{ clusterdir }}"
+    state: directory
+
+- name: copy kubeconfig
+  copy:
+    remote_src: yes
+    src: "{{ kubeconfig }}"
+    dest: "{{ clusterdir }}/kubeconfig"
+
+- name: get worker nodes
+  shell:
+    cmd: "oc get nodes --kubeconfig {{ kubeconfig }} | grep worker | cut -d ' ' -f 1"
+  register: nodes
+  changed_when: False
+
+- name: list nodes
+  debug:
+    msg: "{{ nodes }}"
+    verbosity: 2
+
+- name: list first 2 workers
+  debug:
+    msg: "{{ nodes.stdout_lines[0] }}, {{ nodes.stdout_lines[1] }}"
+    verbosity: 1
+
+- name: copy config file
+  template:
+    src: ../templates/config.j2
+    dest: "{{ clusterdir }}/config.yaml"
+
+#     cmd: "docker run --net=host -t -e LICENSE=accept -v {{ clusterdir }}:/installer/cluster -v /var/run/docker.sock:/var/run/docker.sock ibmcom/icp-inception-amd64:3.2.4 addon -v"
+- name: install common services
+  docker_container:
+    name: icp-inception
+    image: ibmcom/icp-inception-amd64:3.2.4
+    state: started
+    volumes:
+      - "{{ clusterdir }}:/installer/cluster"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    network_mode: host
+    env:
+      LICENSE: "accept"
+    command: addon
+    # detach: False
+  register: container_output
+
+- name: show container_output
+  debug:
+    msg: "{{ container_output }}"
+    verbosity: 1
+
+- name: wait until docker container finishes running
+  docker_container_info:
+    name: icp-inception
+  register: container_info_new
+  until:  container_info_new['container']['State']['Running'] != true
+  retries: 36
+  delay: 300
+
+- name: show container_info_new status
+  debug:
+    msg: "{{ container_info_new['container']['State']['Running'] }}"
+    verbosity: 2
+
+- name: show container_info_new status
+  debug:
+    msg: "{{ container_info_new }}"
+    verbosity: 2
+
+- name: show container_info_new status
+  debug:
+    msg: "{{ container_info_new['container']['State']['Status'] }}"
+    verbosity: 2
+
+- name: get number of fails in the last container run
+  shell:
+    cmd: "docker logs icp-inception | grep -i http | tail -1"
+  when:
+    - container_info_new.exists
+  register: http_message
+  changed_when: False
+
+- name: show message
+  debug:
+    msg: "{{ http_message }}"

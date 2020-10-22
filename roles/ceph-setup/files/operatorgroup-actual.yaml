@@ -1,0 +1,20 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  annotations:
+    olm.providedAPIs: BackingStore.v1alpha1.noobaa.io,BucketClass.v1alpha1.noobaa.io,CephBlockPool.v1.ceph.rook.io,CephClient.v1.ceph.rook.io,CephCluster.v1.ceph.rook.io,CephNFS.v1.ceph.rook.io,CephObjectStore.v1.ceph.rook.io,CephObjectStoreUser.v1.ceph.rook.io,NooBaa.v1alpha1.noobaa.io,OCSInitialization.v1.ocs.openshift.io,ObjectBucket.v1alpha1.objectbucket.io,ObjectBucketClaim.v1alpha1.objectbucket.io,StorageCluster.v1.ocs.openshift.io,StorageClusterInitialization.v1.ocs.openshift.io
+  creationTimestamp: "2020-06-16T13:38:32Z"
+  generateName: openshift-storage-
+  generation: 1
+  name: openshift-storage-69lh4
+  namespace: openshift-storage
+  resourceVersion: "476624"
+  selfLink: /apis/operators.coreos.com/v1/namespaces/openshift-storage/operatorgroups/openshift-storage-69lh4
+  uid: 5454a548-fe04-471b-962d-fc1113757347
+spec:
+  targetNamespaces:
+  - openshift-storage
+status:
+  lastUpdated: "2020-06-16T13:38:32Z"
+  namespaces:
+  - openshift-storage

@@ -1,0 +1,88 @@
+---
+# tasks file for testi
+
+- name: wait
+  wait_for:
+    path: /tmp/ndf
+    sleep: 10
+    delay: 120
+    timeout: 200
+
+- name: stop here
+  meta: end_play
+
+
+- name: get values.yaml template
+  template:
+    src: templates/values.yaml.j2
+    dest: "/tmp/values.yaml"
+    variable_start_string: "[["
+    variable_end_string: "]]"
+
+
+
+- name: get the route to the registry
+  shell:
+    cmd: "oc get route -n openshift-image-registry default-route -o jsonpath='{.spec.host}' --kubeconfig {{ kubeconfig }}"
+  register: image_registry
+  changed_when: False
+
+# - name: copy cert to nodes
+#   shell:
+#     # cmd: "for node in $(oc get nodes -o wide --no-headers --kubeconfig {{kubeconfig}} | awk '{print $6}') ; do scp -o StrictHostKeyChecking=no -r /etc/docker/certs.d/{{ image_registry.stdout }} core@$node:/tmp ; ssh core@$node \"sudo bash -c 'ls /etc/docker/certs.d/{{ image_registry.stdout }} || mv /tmp/{{ image_registry.stdout }} /etc/docker/certs.d'\" ; done"
+#     cmd: "for node in $(oc get nodes -o wide --no-headers --kubeconfig {{kubeconfig}} | awk '{print $6}') ; do scp -o StrictHostKeyChecking=no -r /etc/docker/certs.d/{{ image_registry.stdout }} core@$node:/tmp ; ssh core@$node \"sudo bash -c 'ls /etc/docker/certs.d/{{ image_registry.stdout }} || echo mv /tmp/{{ image_registry.stdout }} /etc/docker/certs.d'\" ; done"
+#   register: scp_result
+#
+# - name: show scp result
+#   debug:
+#     msg: "{{scp_result}}"
+
+
+
+- name: Get docker container
+  docker_container_info:
+    name: icp-inception
+  register: container_info
+
+- name: show container_info status
+  debug:
+    msg: "{{ container_info['container']['State']['Running'] }}"
+
+# - name: show container_info status
+#   debug:
+#     msg: "{{ container_info }}"
+#
+# - name: show container_info status
+#   debug:
+#     msg: "{{ container_info['container']['State']['Status'] }}"
+
+- name: wait until docker container finishes running
+  docker_container_info:
+    name: icp-inception
+  register: container_info_new
+  until:  container_info_new['container']['State']['Running'] != true
+  retries: 36
+  delay: 300
+
+
+- name: check that logs dir exists
+  stat:
+    path: "{{clusterdir}}/logs"
+  register: logdir
+
+- name: Get the log files
+  find:
+    paths: "{{clusterdir}}/logs"
+  register: found_files
+  when: logdir.stat.exists == True
+
+- name: Get latest file
+  set_fact:
+    # latest_file: "{{ found_files.files | sort(attribute='mtime',reverse=true) | first }}"
+    latest_file: "{{ found_files.files | sort(attribute='mtime') | last }}"
+  when: logdir.stat.exists == True
+
+- name: show the result
+  debug:
+    msg: "{{latest_file}}"
+  when: logdir.stat.exists == True

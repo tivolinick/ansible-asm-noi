@@ -1,0 +1,66 @@
+---
+# tasks file for cp-common-services
+
+# check if container has already run successfully
+- name: check if docker container has already run
+  docker_container_info:
+    name: icp-inception
+  register: container_info
+
+- name: show container exists
+  debug:
+    msg: "{{ container_info.exists }}"
+
+- name: show container_info state
+  debug:
+    msg: "{{ container_info }}"
+    verbosity: 1
+  when:
+    - container_info.exists
+
+- name: show container_info failed
+  debug:
+    msg: "{{ container_info.failed }}"
+  # when:
+    # - container_info.failed
+- name: check that logs dir exists
+  stat:
+    path: "{{clusterdir}}/logs"
+  register: logdir
+
+- name: Get the log files
+  find:
+    paths: "{{clusterdir}}/logs"
+  register: found_files
+  when: logdir.stat.exists == True
+
+- name: Get latest file
+  set_fact:
+    # latest_file: "{{ found_files.files | sort(attribute='mtime',reverse=true) | first }}"
+    latest_file: "{{ found_files.files | sort(attribute='mtime') | last }}"
+  when: logdir.stat.exists == True
+
+- name: show the result
+  debug:
+    msg: "{{latest_file}}"
+    verbosity: 1
+  when: logdir.stat.exists == True
+
+- name: get number of fails in the last container run
+  shell:
+    cmd: "grep failed= {{latest_file.path}} | tail -1 | sed 's/^.*=//' | sed 's/\\s//g'"
+  when:
+    - container_info.exists
+    - logdir.stat.exists
+  register: install_fails
+  changed_when: False
+
+- name: show install_fails
+  debug:
+    msg: "{{ install_fails.stdout }}"
+    verbosity: 1
+  when: container_info.exists
+
+- import_tasks: run_install_container.yml
+  when:
+    - (not container_info.exists) or ((container_info.exists) and (install_fails.stdout|int != 0))

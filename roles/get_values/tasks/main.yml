@@ -1,0 +1,33 @@
+---
+# tasks file for get_values
+# Get values that will be used by several other roles
+
+# Log in using OC login. this sets kubeconfig with a current token
+- name: login
+  command:
+    cmd: "oc login -u kubeadmin -p {{k8sAdminPassword}} --kubeconfig {{kubeconfig}}"
+  changed_when: False
+
+# - name: get the console URL
+#   shell:
+#     cmd: "oc get routes -n kube-system icp-console -o jsonpath='{.spec.host}' --kubeconfig {{kubeconfig}}"
+#   register: consolepath
+#   changed_when: False
+
+- name: get the cluster api
+  shell:
+    cmd: "oc get ingress.config cluster -o jsonpath='{.spec.domain}' --kubeconfig {{kubeconfig}}"
+  register: clusterapi
+  changed_when: False
+
+- name: get storage class
+  shell:
+    cmd: "oc get sc --kubeconfig {{ kubeconfig }} | cut -d ' ' -f 1"
+  register: storage_class
+  changed_when: False
+
+- name: get the block storage class
+  set_fact:
+    sc: "{{item}}"
+  with_items: "{{storage_class.stdout_lines}}"
+  when: "'block' in item"

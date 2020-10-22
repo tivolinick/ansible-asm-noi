@@ -1,0 +1,8 @@
+---
+#[fyre:vars]
+ansible_user: "{{ vault_ansible_user }}"
+ansible_password: "{{ vault_ansible_password }}"
+kubeconfig: /root/auth/kubeconfig
+k8s_api: "https://api.{{inventory_hostname}}.os.fyre.ibm.com:6443"
+console_url: "https://console-openshift-console.apps.{{inventory_hostname}}.os.fyre.ibm.com"
+icp_password: passw0rd

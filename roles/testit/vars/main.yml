@@ -1,0 +1,3 @@
+---
+# vars file for testit
+clusterdir: /opt/ibm-common-services/cluster

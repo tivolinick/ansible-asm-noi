@@ -1,0 +1,13 @@
+---
+# - hosts: ocp
+- hosts:
+  - try15
+  - try17
+  roles:
+  - get_values
+  # - check_values
+  # - docker_setup
+  # - cp_common_services
+  # - cli_setup
+  # - k8s_setup
+  - asm

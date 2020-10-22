@@ -1,0 +1,17 @@
+---
+
+
+- hosts: ocp
+  collections:
+  - community.general
+  tasks:
+    - name: tryit
+      yum:
+        name: docker
+        state: present
+
+    - name: docker
+      docker_container:
+        name: webby
+        image: nginx
+        state: started

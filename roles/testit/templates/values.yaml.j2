@@ -1,0 +1,11 @@
+
+  ingress:
+    port : 443
+    tlsSecret: "{{ .Release.Name }}-netcool-tls-secret"
+    # This value must be left to true. Other values are only valid in specific test environment.
+    prefixWithReleaseName: true
+
+  # Define where/who the images will be pulled from
+  image:
+    # This is the artifactory server to pull the docker images from.
+    repository: image-registry.openshift-image-registry.svc:5000/netcool

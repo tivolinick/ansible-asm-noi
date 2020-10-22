@@ -1,0 +1,35 @@
+all:
+  hosts:
+    ansible1:
+      ansible_host: 9.30.231.105
+    play1:
+      ansible_host: 9.30.56.239
+    play2:
+      ansible_host: play21.fyre.ibm.com
+    try20:
+      ansible_host: 9.30.54.104
+    try21:
+      ansible_host: 9.30.210.88
+    ndfnoi:
+      ansible_host: 9.30.138.97
+
+  children:
+    fyre:
+      hosts:
+        ansible1:
+        play1:
+        play2:
+        try20:
+        try21:
+        ndfnoi:
+
+    play:
+      hosts:
+        play1:
+        play2:
+
+    ocp:
+      hosts:
+#        ndfnoi:
+        try20:
+        try21:

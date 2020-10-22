@@ -1,0 +1,216 @@
+################################################################################
+#
+# LICENSE AGREEMENT
+#
+# Please review and accept the terms of the license agreement by setting
+# license=accept
+#
+################################################################################
+license: not-accepted
+
+################################################################################
+#
+# GLOBAL SETTINGS
+#
+################################################################################
+global:
+  asm:
+    authentication: true
+    disableHTTPS: false
+    historyTtlHours: 720
+    statusConsumerCount: 24
+  image:
+    repository: image-registry.openshift-image-registry.svc:5000/netcool
+    pullPolicy: IfNotPresent
+  ingress:
+    api:
+      enabled: true
+    admin:
+      enabled: false
+    domain: ""
+    tlsSecret: ""
+  cluster:
+    fqdn: "{{clusterapi.stdout}}"
+  environmentSize: size0
+  cassandraNodeReplicas: environmentSizeDefault
+  cassandra:
+    superuserRole: true
+  elasticsearch:
+    replicaCount: environmentSizeDefault
+  kafka:
+    clusterSize: environmentSizeDefault
+    kafkaRestInsecurePort: 8080
+    usePodIpForListeners: true
+  zookeeper:
+    clusterSize: environmentSizeDefault
+  license:
+  persistence:
+    enabled: true
+    useDynamicProvisioning: true
+    storageClassName: "{{sc}}"
+    storageClassOption:
+      cassandradata: "default"
+      zookeeperdata: "default"
+      kafkadata: "default"
+    storageSize:
+      cassandradata: 50Gi
+      kafkadata: 15Gi
+      zookeeperdata: 5Gi
+      elasticdata: 75Gi
+
+  hybrid:
+    # Set to false for hybrid installs, where ObjectServers are located on premises
+    disabled: true
+    objectserver:
+      # username: root
+      primary:
+         hostname: "aggregation-primary.fully-qualified-domain.name"
+         port: 4100
+      backup:
+         hostname: "aggregation-backup.fully-qualified-domain.name"
+         port: 4200
+      config:
+        # Stop ASM trying to modify the ObjectServer schema by setting to "none"
+        deployPhase: "install"
+        ssl:
+          # Only needed when setting up an SSL connection to an aggregate object server which does not have the name AGG_V.
+          virtualPairName:
+          #This is used to specify the CN name for the CA certificate(SSL only).
+          # If using omnibus CA certs this can be omitted.
+          rootCAName:
+
+################################################################################
+#
+# ASM OPTIONS AND FEATURE TOGGLES
+#
+# Feature toggles are in the 'asm' namespace, so that the same keys are used to
+# toggle features, if this chart is being deployed as-is, or as a subchart of
+# something else.
+#
+# See README.md for explanation of these options. If the option is not documented
+# in the README you are advised not to change the value.
+#
+################################################################################
+asm:
+  cassandra:
+    enabled: true
+  elasticsearch:
+    enabled: true
+  kafka:
+    enabled: true
+  zookeeper:
+    enabled: true
+  layout:
+    enabled: true
+  merge:
+    enabled: true
+  observerService:
+    enabled: true
+  search:
+    enabled: true
+  topology:
+    enabled: true
+  noi:
+    enabled: true
+  secretManager:
+    enabled: true
+  almObserver:
+    enabled: false
+  appdynamicsObserver:
+    enabled: false
+  awsObserver:
+    enabled: false
+  azureObserver:
+    enabled: false
+  bigfixinventoryObserver:
+    enabled: false
+  cienablueplanetObserver:
+    enabled: false
+  ciscoaciObserver:
+    enabled: false
+  contrailObserver:
+    enabled: false
+  dnsObserver:
+    enabled: false
+  dockerObserver:
+    enabled: false
+  dynatraceObserver:
+    enabled: false
+  eventObserver:
+    enabled: true
+  fileObserver:
+    enabled: false
+  googlecloudObserver:
+    enabled: false
+  ibmcloudObserver:
+    enabled: false
+  itnmObserver:
+    enabled: false
+  jenkinsObserver:
+    enabled: false
+  junipercsoObserver:
+    enabled: false
+  kubernetesObserver:
+    enabled: true
+  newrelicObserver:
+    enabled: false
+  openstackObserver:
+    enabled: false
+  restObserver:
+    enabled: false
+  # sdkObserver:
+  #   enabled: false
+  servicenowObserver:
+    enabled: false
+  taddmObserver:
+    enabled: false
+  vmvcenterObserver:
+    enabled: false
+  vmwarensxObserver:
+    enabled: false
+  zabbixObserver:
+    enabled: false
+  uiApi:
+    enabled: true
+
+# where to find noi - it must be in the same namespace
+noi:
+  releaseName: noi
+
+# event observer configuration, replacing legacy netcool job parameters
+eventObserver:
+  nodeFields: Node,NodeAlias
+
+################################################################################
+#
+# ADVANCED OPTIONS
+#
+# These options are not normally changed unless advised by IBM Support.
+#
+################################################################################
+kafka:
+  pdb:
+    enabled: false
+  sch:
+    enabled: false
+  arch:
+    - amd64
+  defaultTopicPartitions: 24
+
+# Cassandra nodes are started sequentially
+cassandra:
+  pdb:
+    enabled: false
+  sch:
+    enabled: false
+  arch:
+    - amd64
+  seeds: "CUSTOM_KUBERNETES_STATEFULSET_SEED_LIST_API"
+
+zookeeper:
+  pdb:
+    enabled: false
+  sch:
+    enabled: false
+  arch:
+    - amd64

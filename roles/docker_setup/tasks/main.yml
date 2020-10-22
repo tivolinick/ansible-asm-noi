@@ -1,0 +1,41 @@
+---
+# tasks file for docker
+# Set up host to run docker modules
+- name: distribution
+  debug:
+    msg: "{{ ansible_distribution }} : {{ ansible_distribution_major_version }}"
+
+- name: get pip file
+  copy:
+    src: ./files/get-pip.py
+    dest: /tmp/get-pip.py
+
+# - include: roles/docker_setup/tasks/rhel7.yml
+- import_tasks: rhel7.yml
+  when: ansible_distribution_major_version <= '7'
+
+# - include: roles/docker_setup/tasks/rhel8.yml
+- import_tasks: rhel8.yml
+  when: ansible_distribution_major_version >= '8'
+
+- name: start and enable docker
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+# SPARE BITS -->
+# - name: update setup tools
+#   pip:
+#     executable: /usr/bin/pip
+#     state: latest
+#     name: setuptools
+
+# <-- SPARE BITS
+
+# - name: test
+#   docker_container:
+#     name: webby
+#     image: nginx
+#     state: started
+#     state: absent

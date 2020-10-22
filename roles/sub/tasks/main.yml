@@ -1,0 +1,6 @@
+---
+# tasks file for sub
+- name: say yee ha
+  debug:
+    msg: In the sub role
+    

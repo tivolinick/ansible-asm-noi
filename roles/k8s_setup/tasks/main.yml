@@ -1,0 +1,64 @@
+---
+# tasks file for ocp
+- name: get pip file
+  copy:
+    src: ../files/get-pip.py
+    dest: /tmp/get-pip.py
+
+- name: install pip
+  command:
+    chdir: /tmp
+    cmd: python get-pip.py
+    creates: /usr/bin/pip
+
+- name: check for Python module openstack
+  stat:
+    path: /usr/lib/python2.7/site-packages/openshift
+  register: result
+
+- name: openstack module found
+  debug:
+    msg: "{{ result.stat.exists }}"
+    verbosity: 1
+
+- name: Select files to delete ipaddress and PyYAML Python libs manually
+  find:
+    paths:
+      - /usr/lib/python2.7/site-packages
+      - /usr/lib64/python2.7/site-packages
+    patterns:
+      - ipaddress*
+      - PyYAML*
+  register: files_to_delete
+  when: result.stat.exists == false
+
+- name: files to delete
+  debug:
+    msg: "{{ files_to_delete }}"
+    verbosity: 1
+
+- name: Remove files
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  when: result.stat.exists == false
+  with_items: "{{ files_to_delete.files }}"
+
+- name: install required python libs
+  pip:
+    executable: /usr/bin/pip
+    state: present
+    name: ['PyYAML', 'requests', 'requests-oauthlib']
+
+- name: update setup tools
+  pip:
+    executable: /usr/bin/pip
+    state: latest
+    name: setuptools
+
+- name: install openshift library
+  pip:
+    executable: /usr/bin/pip
+    state: present
+    extra_args:
+    name: openshift

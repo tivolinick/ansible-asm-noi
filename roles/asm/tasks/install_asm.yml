@@ -1,0 +1,213 @@
+---
+# tasks file installs asm
+
+
+# get pods
+- name: get pods in kube-system
+  k8s_info:
+    kind: pods
+    namespace: kube-system
+    kubeconfig: "{{ kubeconfig }}"
+  register: pods
+
+- name: show pod info full
+  debug:
+    msg: "{{ pods['resources'] }}"
+    verbosity: 1
+
+- name: show pod phases
+  debug:
+    msg: "{{ item['status']['phase'] }}"
+    verbosity: 1
+  loop: "{{ pods['resources'] }}"
+
+- name: check for bad pod
+  set_fact:
+    good_pod: False
+  loop: "{{ pods['resources'] }}"
+  when:
+    - item['status']['phase'] != "Running"
+    - item['status']['phase'] != "Succeeded"
+
+- name: are the common services pods ok
+  debug:
+    msg: "{{good_pod}}"
+  failed_when: good_pod == False
+
+# create a namespace
+- name: create namespace
+  k8s:
+    name: "{{ NAMESPACE }}"
+    kind: namespace
+    state: present
+    kubeconfig: "{{kubeconfig}}"
+
+- name: get the OCP registry
+  shell:
+    cmd: "oc get route -n openshift-image-registry default-route -o jsonpath='{.spec.host}'  --kubeconfig {{ kubeconfig }}"
+  register: registry
+  changed_when: False
+
+- name: create working dir
+  file:
+    name: "{{workingdir}}"
+    state: directory
+
+- name: extract scripts from tar files
+  unarchive:
+    src: "{{sourcedir}}/{{asm_tarfile}}"
+    remote_src: True
+    dest: "{{workingdir}}/"
+    extra_opts:
+      - pak_extensions/
+      - charts/ibm-netcool-asm-prod-4.2.1.tgz
+    creates: "{{workingdir}}/pak_extensions"
+
+- name: extract values from tar files
+  unarchive:
+    src: "{{workingdir}}/charts/ibm-netcool-asm-prod-4.2.1.tgz"
+    remote_src: True
+    dest: "{{workingdir}}/charts/"
+    extra_opts:
+      - ibm-netcool-asm-prod/values.yaml
+    creates: "{{workingdir}}/charts/ibm-netcool-asm-prod/values.yaml"
+
+- name: show storage
+  debug:
+    msg: "{{storage_class}}"
+    verbosity: 1
+
+- name: show storage
+  debug:
+    msg: "{{storage_class.stdout_lines}}"
+    verbosity: 1
+
+- name: get the block storage class
+  set_fact:
+    sc: "{{item}}"
+  with_items: "{{storage_class.stdout_lines}}"
+  when: "'block' in item"
+  changed_when: False
+
+- name: show storage
+  debug:
+    msg: "{{sc}}"
+    verbosity: 1
+
+# cloudctl login
+# log in to the docker registry
+# load asm installer into the oc registry asynchronously as it takes a long time to run
+
+
+
+- name: docker login
+  shell:
+    cmd: "docker login -u $(oc whoami) -p $(oc whoami -t) {{registry.stdout}}"
+  register: docker
+  changed_when: False
+
+- name: docker login result
+  debug:
+    msg: "{{docker}}"
+    verbosity: 1
+
+- name: check catalog
+  shell:
+    cmd: "cloudctl catalog charts | grep asm"
+  register: catalog_result
+  changed_when: False
+  failed_when: catalog_result.rc > 1
+
+- name: catalog contents
+  debug:
+    msg: "{{catalog_result.stdout}}"
+
+- name: load catalog
+  shell:
+    cmd: "cloudctl catalog load-archive --archive {{sourcedir}}/{{asm_tarfile}} --registry {{registry.stdout}}/{{ NAMESPACE }}"
+    # creates: "{{sourcedir}}/.loaded"
+  # async: 10800
+  # poll: 0
+  register: load_catalog
+  when: catalog_result.stdout == ''
+
+- name: catalog load result
+  debug:
+    msg: "{{load_catalog}}"
+    verbosity: 1
+  when: catalog_result.stdout == ''
+
+- name: set vm.max_map_count
+  shell:
+    cmd: "for node in $(oc get nodes --selector='node-role.kubernetes.io/worker' -o wide --no-headers | awk '{print $6}'); do ssh -o StrictHostKeyChecking=no core@$node \"sudo bash -c 'grep vm.max_map_count /etc/sysctl.conf > /dev/null || sysctl -w vm.max_map_count=1048575 | sudo tee -a /etc/sysctl.conf'\" ; done"
+  register: set_max_map_result
+  changed_when: "set_max_map_result.stdout != ''"
+
+- name: show max map result
+  debug:
+    msg: "{{set_max_map_result}}"
+    verbosity: 1
+
+- name: createSecurityClusterPrereqs
+  shell:
+    chdir: "{{workingdir}}/pak_extensions/pre-install/clusterAdministration"
+    cmd: "bash createSecurityClusterPrereqs.sh > createSecurityClusterPrereqs.out && mv createSecurityClusterPrereqs.out createSecurityClusterPrereqs.log"
+    creates: "{{workingdir}}/pak_extensions/pre-install/clusterAdministration/createSecurityClusterPrereqs.log"
+
+- name: createSecurityNamespacePrereqs
+  shell:
+    chdir: "{{workingdir}}/pak_extensions/pre-install/clusterAdministration"
+    cmd: "bash createSecurityNamespacePrereqs.sh {{NAMESPACE}} > createSecurityNamespacePrereqs.out && mv createSecurityNamespacePrereqs.out createSecurityNamespacePrereqs.log"
+    creates: "{{workingdir}}/pak_extensions/pre-install/clusterAdministration/createSecurityNamespacePrereqs.log"
+
+- name: get the values.yml file
+  template:
+    src: templates/values.yaml.j2
+    dest: "{{workingdir}}/charts/ibm-netcool-asm-prod/values.yaml"
+
+- name: init helm
+  command:
+    cmd: helm init
+    creates: /root/.helm/repository
+
+- name: sync helm repos
+  command:
+    cmd: helm
+    creates: /root/.helm/ca.pem
+
+- name: check for the repo
+  shell:
+    cmd: "helm repo list | grep icp-repo"
+  register: helm_repo
+  failed_when: helm_repo.rc > 1
+  changed_when: False
+
+- name: get the local repo url
+  shell:
+    cmd: "cloudctl catalog repos | grep local | awk '{print $2}'"
+  register: local_repo
+  when: helm_repo.stdout == ''
+
+- name: add the repo
+  shell:
+    cmd: "helm repo add icp-repo {{local_repo.stdout}} --ca-file /root/.helm/ca.pem"
+  when: helm_repo.stdout == ''
+
+- name: check for the repo
+  shell:
+    cmd: "helm repo list | grep icp-repo"
+  register: helm_repo
+  changed_when: False
+
+- name: check the repo now
+  debug:
+    msg: "{{helm_repo}}"
+
+- name: Install ASM
+  shell:
+    cmd: 'helm install icp-repo/ibm-netcool-asm-prod -f {{workingdir}}/charts/ibm-netcool-asm-prod/values.yaml --tls --name asm --namespace {{NAMESPACE}} --set license\=accept'
+  register: asm_install
+
+- name: install result
+  debug:
+    msg: asm_install

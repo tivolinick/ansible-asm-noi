@@ -1,0 +1,7 @@
+---
+# vars file for asm
+sourcedir: /source
+cloudctl_url: /api/cli/cloudctl-linux-amd64
+helm_file: helm-linux-amd64-v2.12.3.tar.gz
+helm_url: /api/cli/helm-linux-amd64.tar.gz
+serv_name: docker

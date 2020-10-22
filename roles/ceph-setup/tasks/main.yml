@@ -1,0 +1,16 @@
+---
+# tasks file for ceph-setup
+
+
+oc create -f rhocs-namespace.yaml
+
+# oc label namespace openshift-storage openshift.io/cluster-monitoring=true
+oc annotate namespace openshift-storage openshift.io/node-selector=
+oc project openshift-storage
+# list available operators
+oc get packagemanifests -n openshift-marketplace
+
+oc apply -f operatorgroup.yaml
+
+
+# https://console-openshift-console.apps.ndfnoi.cp.fyre.ibm.com/operatorhub/subscribe?pkg=ocs-operator&catalog=redhat-operators&catalogNamespace=openshift-marketplace&targetNamespace=openshift-storage

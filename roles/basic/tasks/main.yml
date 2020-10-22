@@ -1,0 +1,27 @@
+---
+# tasks file for basic
+- name: get hostname
+  shell: hostname
+  register: output
+
+- name: show the name
+  debug:
+    msg: Host - "{{output.stdout_lines}}"
+
+- name: do the config thing
+  template:
+    src: ../files/config.yaml
+    dest: /tmp/config.yaml
+
+- name: start the service
+  service:
+    name: ntpd
+    state: started
+    enabled: yes
+
+- meta: end_play
+
+- name: template file
+  template:
+    src: ../templates/test.j2
+    dest: /tmp/test.cfg

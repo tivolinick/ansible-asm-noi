@@ -1,0 +1,8 @@
+---
+# vars file for cp-common-services
+run_container: True
+clusterdir: /opt/ibm-common-services/cluster
+# Assuming file is on the box for now
+sourcedir: /source
+tarfile: COM_SVRCE3.2.4_NOI_1.6.0.3_ML.tar.gz
+imagesource: common-services-boeblingen-2002-x86_64.tar.gz
